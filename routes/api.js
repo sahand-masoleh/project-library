@@ -35,16 +35,16 @@ module.exports = function (app) {
 						commentcount: (await Comment.find({ book_id: book._id })).length,
 					});
 				}
-				res.status(200).json(response);
+				res.json(response).status(200);
 			} catch (error) {
-				res.status(500).send(error.message);
+				res.send(error.message).status(500);
 			}
 		})
 
 		.post(async (req, res) => {
 			//response will contain new book object including atleast _id and title
 			if (!req.body.title)
-				return res.status(400).send("missing required field title");
+				return res.send("missing required field title").status(400);
 			let title = req.body.title;
 			let book = new Book({
 				title,
@@ -52,9 +52,9 @@ module.exports = function (app) {
 
 			try {
 				let result = await Book.create(book);
-				res.status(200).json(result);
+				res.json(result).status(200);
 			} catch (error) {
-				res.status(500).send(error.message);
+				res.send(error.message).status(500);
 			}
 		})
 
@@ -63,9 +63,9 @@ module.exports = function (app) {
 			try {
 				await Book.deleteMany({});
 				await Comment.deleteMany({});
-				res.status(200).send("complete delete successful");
+				res.send("complete delete successful").status(200);
 			} catch (error) {
-				res.status(500).send(error.message);
+				res.send(error.message).status(500);
 			}
 		});
 
@@ -76,24 +76,24 @@ module.exports = function (app) {
 			let _id = req.params._id;
 			try {
 				let result = (await Book.find({ _id }))[0];
-				if (!result) return res.status(400).send("no book exists");
+				if (!result) return res.send("no book exists").status(400);
 				let comments = (await Comment.find({ book_id: _id })).map(
 					(comment) => comment.text
 				);
-				res.status(200).json({
+				res.json({
 					_id,
 					title: result.title,
 					comments,
-				});
+				}).status(200);
 			} catch (error) {
-				res.status(500).send(error.message);
+				res.send(error.message).status(500);
 			}
 		})
 
 		.post(async (req, res) => {
 			//json res format same as .get
 			if (!req.body.comment)
-				return res.status(400).send("missing required field comment");
+				return res.send("missing required field comment").status(400);
 			let book_id = req.params._id;
 			let text = req.body.comment;
 			let comment = new Comment({
@@ -102,12 +102,21 @@ module.exports = function (app) {
 			});
 
 			try {
-				if (!(await Book.find({ _id: book_id }))[0])
-					return res.status(400).send("no book exists");
-				let result = await Comment.create(comment);
-				res.status(200).json(result);
+        let book = (await Book.find({ _id: book_id }))[0]
+				if (!book) return res.send("no book exists").status(400);
+
+				await Comment.create(comment);
+        let comments = (await Comment.find({ book_id })).map(
+					(comment) => comment.text
+				);
+				res.json({
+          _id: book_id,
+          comments,
+          title: book.title,
+          commentcount: comments.length
+        }).status(200);
 			} catch (error) {
-				res.status(500).send(error.message);
+				res.send(error.message).status(500);
 			}
 		})
 
@@ -116,12 +125,12 @@ module.exports = function (app) {
 			let _id = req.params._id;
 			try {
 				if (!(await Book.find({ _id }))[0])
-					return res.status(400).send("no book exists");
+					return res.send("no book exists").status(400);
 				await Book.deleteOne({ _id });
 				await Comment.deleteOne({ book_id: _id });
-				res.status(200).send("delete successfull");
+				res.send("delete successful").status(200);
 			} catch (error) {
-				res.status(500).send(error.message);
+				res.send(error.message).status(500);
 			}
 		});
 };
